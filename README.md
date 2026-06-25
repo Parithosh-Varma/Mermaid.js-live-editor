@@ -1,6 +1,13 @@
-# Mermaid Live Editor
+<p align="center">
+  <img src="https://mermaid.js.org/img/logo.svg" alt="Mermaid.js Logo" width="120" />
+</p>
 
-A browser-based live editor for [Mermaid.js](https://mermaid.js.org/) diagrams. Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
+<h1 align="center">Mermaid Live Editor</h1>
+
+<p align="center">
+  A browser-based live editor for <a href="https://mermaid.js.org/">Mermaid.js</a> diagrams.<br/>
+  Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
+</p>
 
 ## Features
 
@@ -79,3 +86,7 @@ flowchart TD
 ## License
 
 MIT
+
+---
+
+<p align="center">Made by <a href="https://github.com/Parithosh-Varma">Parithosh Varma</a></p>
