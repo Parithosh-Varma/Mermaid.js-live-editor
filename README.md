@@ -9,6 +9,8 @@
   Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
 </p>
 
+<p align="center">Made by <a href="https://github.com/Parithosh-Varma">Parithosh Varma</a></p>
+
 ## Features
 
 - **Live Preview** — Diagrams render in real-time as you type
@@ -86,7 +88,3 @@ flowchart TD
 ## License
 
 MIT
-
----
-
-<p align="center">Made by <a href="https://github.com/Parithosh-Varma">Parithosh Varma</a></p>
