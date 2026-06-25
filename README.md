@@ -8,6 +8,8 @@ A browser-based live editor for [Mermaid.js](https://mermaid.js.org/) diagrams.
 
 Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
 
+**Live at: [mermaidlive.netlify.app](https://mermaidlive.netlify.app/)**
+
 [![Netlify Status](https://api.netlify.com/api/v1/badges/deploy-status/badge.svg)](https://app.netlify.com/sites/mermaid-live-editor/deploys)
 
 Made by **[Parithosh Varma](https://github.com/Parithosh-Varma)**
