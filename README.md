@@ -1,41 +1,53 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mermaid-js/mermaid/develop/docs/public/favicon.svg" alt="Mermaid.js Logo" width="120" />
-</p>
+<div align="center">
 
-<h1 align="center">Mermaid Live Editor</h1>
+<img src="https://raw.githubusercontent.com/mermaid-js/mermaid/develop/docs/public/favicon.svg" alt="Mermaid.js Logo" width="100" />
 
-<p align="center">
-  A browser-based live editor for <a href="https://mermaid.js.org/">Mermaid.js</a> diagrams.<br/>
-  Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
-</p>
+# Mermaid Live Editor
 
-<p align="center">Made by <a href="https://github.com/Parithosh-Varma">Parithosh Varma</a></p>
+A browser-based live editor for [Mermaid.js](https://mermaid.js.org/) diagrams.
+
+Write Mermaid syntax on the left, see the rendered diagram instantly on the right.
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/deploy-status/badge.svg)](https://app.netlify.com/sites/mermaid-live-editor/deploys)
+
+Made by **[Parithosh Varma](https://github.com/Parithosh-Varma)**
+
+</div>
+
+---
 
 ## Features
 
-- **Live Preview** — Diagrams render in real-time as you type
-- **Monaco Editor** — Full-featured code editor with Mermaid syntax highlighting, minimap, and adjustable font size
-- **Multiple Diagrams** — Work on multiple diagrams in tabs, each saved independently
-- **Pan & Zoom** — Drag to pan, scroll to zoom, fit-to-screen, and zoom controls
-- **Themes & Styles** — 11 built-in themes, 3 visual looks (classic, hand-drawn, neo), and multiple layout engines
-- **Export** — Download as SVG, PNG (2x), or PNG (4x) with configurable background color and transparency
-- **Share** — Generate a shareable URL with QR code, or copy Markdown/Image embed snippets
-- **Dark Mode** — Toggle between light and dark UI
-- **Presentation Mode** — Fullscreen diagram view (Ctrl+Shift+P)
-- **Import** — Open `.mmd`, `.md`, or `.txt` files via file picker or drag-and-drop
-- **Frontmatter Config** — Override theme, look, and layout per diagram using YAML frontmatter
-- **Keyboard Shortcuts** — Ctrl+S to save, Ctrl+K for shortcuts, Ctrl+Shift+P for presentation
-- **LocalStorage Persistence** — Diagrams and settings persist across sessions
-- **Single-File Build** — Builds to a single self-contained HTML file via `vite-plugin-singlefile`
+| | Feature | Description |
+|---|---|---|
+| | **Live Preview** | Diagrams render in real-time as you type |
+| | **Monaco Editor** | Full-featured code editor with Mermaid syntax highlighting |
+| | **Multiple Diagrams** | Work on multiple diagrams in tabs |
+| | **Pan & Zoom** | Drag to pan, scroll to zoom, fit-to-screen |
+| | **Themes & Styles** | 11 themes, 3 visual looks, multiple layout engines |
+| | **Export** | Download as SVG, PNG (2x), or PNG (4x) |
+| | **Share** | Shareable URL with QR code, Markdown/Image embed |
+| | **Dark Mode** | Toggle between light and dark UI |
+| | **Presentation Mode** | Fullscreen diagram view |
+| | **Import** | Open `.mmd`, `.md`, or `.txt` files via drag-and-drop |
+| | **Frontmatter Config** | Override theme per diagram using YAML frontmatter |
+| | **Persistence** | Diagrams and settings persist across sessions |
+| | **Single-File Build** | Builds to a single self-contained HTML file |
 
 ## Supported Diagram Types
 
-Flowchart, Sequence, Class, State, ER, Gantt, Pie, Git Graph, Mindmap, User Journey, Timeline, Quadrant, Requirement, Sankey, and C4 diagrams.
+```
+Flowchart · Sequence · Class · State · ER · Gantt · Pie · Git Graph
+Mindmap · User Journey · Timeline · Quadrant · Requirement · Sankey · C4
+```
 
-## Getting Started
+## Quick Start
 
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
@@ -47,13 +59,13 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 npm run build
 ```
 
-Outputs a single `dist/index.html` file that can be opened directly in any browser.
+Outputs a single `dist/index.html` file that can be opened directly in any browser — no server required.
 
 ## Frontmatter Configuration
 
-Override global settings per diagram by adding YAML frontmatter at the top of your code:
+Override global settings per diagram by adding YAML frontmatter:
 
-```mermaid
+```yaml
 ---
 config:
   theme: dark
@@ -69,22 +81,31 @@ flowchart TD
 ## Keyboard Shortcuts
 
 | Action | Shortcut |
-|---|---|
-| Save diagram | `Ctrl+S` |
-| Presentation mode | `Ctrl+Shift+P` |
-| Show shortcuts | `Ctrl+K` |
+|:---|:---|
+| Save diagram | `Ctrl + S` |
+| Presentation mode | `Ctrl + Shift + P` |
+| Show shortcuts | `Ctrl + K` |
 | Exit presentation | `Esc` |
 
 ## Tech Stack
 
-- React 19 + TypeScript
-- Vite 7
-- Tailwind CSS 4
-- Monaco Editor
-- Mermaid.js 11
-- Panzoom
-- QRCode.js
+<div align="center">
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Mermaid.js](https://img.shields.io/badge/Mermaid.js-11-FF3670?logo=mermaid&logoColor=white)
+![Monaco Editor](https://img.shields.io/badge/Monaco_Editor-0.55-1E90FF?logo=visual-studio-code&logoColor=white)
+
+</div>
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+<div align="center">
+Built with ❤️ by <a href="https://github.com/Parithosh-Varma">Parithosh Varma</a>
+</div>
