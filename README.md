@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://mermaid.js.org/img/logo.svg" alt="Mermaid.js Logo" width="120" />
+  <img src="https://raw.githubusercontent.com/mermaid-js/mermaid/develop/docs/public/favicon.svg" alt="Mermaid.js Logo" width="120" />
 </p>
 
 <h1 align="center">Mermaid Live Editor</h1>
