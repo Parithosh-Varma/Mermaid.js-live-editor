@@ -183,7 +183,9 @@ function uid() {
 }
 
 function parseFrontmatter(code: string): { config: FrontmatterConfig; body: string } {
-  const match = code.trimStart().match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+  const trimmed = code.trimStart();
+  const leadingOffset = code.length - trimmed.length;
+  const match = trimmed.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
   if (!match) return { config: {}, body: code };
   const yaml = match[1];
   const config: FrontmatterConfig = {};
@@ -208,7 +210,10 @@ function parseFrontmatter(code: string): { config: FrontmatterConfig; body: stri
         config.themeVariables![kv[1]] = kv[2].replace(/^["']|["']$/g, "");
       } else if (line.match(/^\w+:/)) {
         inThemeVariables = false;
+      } else {
+        continue;
       }
+      continue;
     }
     const kv = line.match(/^([a-zA-Z0-9_]+):\s*(.+)$/);
     if (kv) {
@@ -219,7 +224,7 @@ function parseFrontmatter(code: string): { config: FrontmatterConfig; body: stri
       if (key === "layout") config.layout = value;
     }
   }
-  return { config, body: code.slice(match[0].length) };
+  return { config, body: code.slice(leadingOffset + match[0].length) };
 }
 
 function formatThemeName(t: string) {
@@ -419,13 +424,8 @@ export default function App() {
     return { effectiveConfig: merged, bodyCode: body };
   }, [renderCode, appConfig]);
 
-  // Render diagram.
+  // Initialize mermaid once.
   useEffect(() => {
-    let cancelled = false;
-    const start = performance.now();
-    setLoading(true);
-    setError(null);
-
     mermaid.initialize({
       startOnLoad: false,
       theme: effectiveConfig.theme as any,
@@ -435,6 +435,14 @@ export default function App() {
       logLevel: "error",
       themeVariables: effectiveConfig.themeVariables,
     });
+  }, []);
+
+  // Render diagram.
+  useEffect(() => {
+    let cancelled = false;
+    const start = performance.now();
+    setLoading(true);
+    setError(null);
 
     mermaid
       .render(`mermaid-${Date.now()}`, bodyCode || renderCode)
@@ -493,6 +501,7 @@ export default function App() {
       setDiagrams((prev) => [...prev, newD]);
       setActiveId(newD.id);
       setCode(decoded);
+      window.history.replaceState(null, "", window.location.pathname);
     } catch {
       // ignore
     }
@@ -653,10 +662,12 @@ export default function App() {
       const next = prev.filter((d) => d.id !== id);
       if (next.length === 0) {
         const empty = { id: uid(), name: "Diagram 1", code: SAMPLES["Flowchart"] };
-        setActiveId(empty.id);
+        requestAnimationFrame(() => setActiveId(empty.id));
         return [empty];
       }
-      if (activeId === id) setActiveId(next[0].id);
+      if (activeId === id) {
+        requestAnimationFrame(() => setActiveId(next[0].id));
+      }
       return next;
     });
   };
