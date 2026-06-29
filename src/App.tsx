@@ -20,6 +20,7 @@ import {
   Save,
   Settings2,
   Share2,
+  Sparkles,
   Sun,
   Type,
   X,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import mermaid from "mermaid";
 import { AuthorCard } from "@/components/AuthorCard";
+import { supabase, ensureSession } from "@/lib/supabase";
 
 // --- Types ---
 interface Diagram {
@@ -343,10 +345,23 @@ export default function App() {
   const [filename, setFilename] = useState("diagram");
   const [dragOver, setDragOver] = useState(false);
 
+  // AI state
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [groqApiKey, setGroqApiKey] = useState(() => {
+    try { return localStorage.getItem("mermaid-live-groq-key") || ""; } catch { return ""; }
+  });
+  const [showAiKeyInput, setShowAiKeyInput] = useState(false);
+
+  // Supabase state
+  const [supabaseReady, setSupabaseReady] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
   const previewRef = useRef<HTMLDivElement>(null);
   const panzoomRef = useRef<PanZoomApi | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // --- Effects ---
   useEffect(() => {
@@ -371,6 +386,10 @@ export default function App() {
       localStorage.setItem(STORAGE_APP_CONFIG, JSON.stringify(appConfig));
     } catch {}
   }, [appConfig]);
+
+  useEffect(() => {
+    try { localStorage.setItem("mermaid-live-groq-key", groqApiKey); } catch {}
+  }, [groqApiKey]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -478,6 +497,102 @@ export default function App() {
       // ignore
     }
   }, []);
+
+  // Supabase init: sign in anonymously & load remote data.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await ensureSession();
+        if (!user || cancelled) return;
+        setUserId(user.id);
+
+        const [{ data: diagramsData }, { data: profile }] = await Promise.all([
+          supabase.from("diagrams").select("*").eq("user_id", user.id).order("position"),
+          supabase.from("profiles").select("*").eq("id", user.id).single(),
+        ]);
+
+        if (cancelled) return;
+
+        if (diagramsData && diagramsData.length > 0) {
+          const remote: Diagram[] = diagramsData.map((d) => ({
+            id: d.id,
+            name: d.name,
+            code: d.code,
+          }));
+          setDiagrams(remote);
+          const active = profile?.active_diagram_id;
+          if (active && remote.find((d) => d.id === active)) {
+            setActiveId(active);
+          }
+        }
+
+        if (profile) {
+          if (profile.app_config && Object.keys(profile.app_config).length > 0) {
+            setAppConfig((prev) => ({ ...prev, ...profile.app_config }));
+          }
+          setIsDark(profile.is_dark);
+          if (profile.groq_api_key) setGroqApiKey(profile.groq_api_key);
+        }
+      } catch {
+        // Supabase unavailable — staying with localStorage data.
+      } finally {
+        if (!cancelled) setSupabaseReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced sync to Supabase.
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!supabaseReady || !userId) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const rows = diagrams.map((d, i) => ({
+        id: d.id,
+        user_id: userId,
+        name: d.name,
+        code: d.code,
+        position: i,
+      }));
+
+      const { data: existing } = await supabase
+        .from("diagrams")
+        .select("id")
+        .eq("user_id", userId);
+
+      const existingIds = existing?.map((d) => d.id) || [];
+      const newIds = diagrams.map((d) => d.id);
+      const toDelete = existingIds.filter((id) => !newIds.includes(id));
+
+      if (toDelete.length > 0) {
+        await supabase.from("diagrams").delete().in("id", toDelete);
+      }
+
+      if (rows.length > 0) {
+        await supabase.from("diagrams").upsert(rows, { onConflict: "id" });
+      }
+
+      await supabase.from("profiles").upsert(
+        {
+          id: userId,
+          active_diagram_id: activeId,
+          app_config: appConfig,
+          is_dark: isDark,
+          groq_api_key: groqApiKey,
+        },
+        { onConflict: "id" },
+      );
+    }, 2000);
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [diagrams, activeId, appConfig, isDark, groqApiKey, supabaseReady, userId]);
 
   // Render QR code when sharing.
   useEffect(() => {
@@ -781,6 +896,86 @@ export default function App() {
     return "Unknown";
   }, [renderCode]);
 
+  // AI generation.
+  const generateWithGroq = async () => {
+    if (!aiPrompt.trim() || !groqApiKey || isGenerating) return;
+    setIsGenerating(true);
+    const abort = new AbortController();
+    abortRef.current = abort;
+    let accumulated = "";
+
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama3-70b-8192",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert at generating Mermaid.js diagram code. Given a user's description of a diagram, generate only valid Mermaid code. Output nothing except the raw Mermaid code — no explanations, no markdown formatting, no backticks.",
+            },
+            { role: "user", content: aiPrompt },
+          ],
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+        signal: abort.signal,
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Groq API error (${res.status}): ${errText}`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Response body not readable");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const json = JSON.parse(payload);
+            const delta = json.choices?.[0]?.delta?.content;
+            if (delta) {
+              accumulated += delta;
+              updateDiagramCode(accumulated);
+            }
+          } catch {}
+        }
+      }
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsGenerating(false);
+      abortRef.current = null;
+    }
+  };
+
+  const stopGeneration = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsGenerating(false);
+  };
+
   // --- UI ---
   const editorPane = (
     <div
@@ -840,6 +1035,78 @@ export default function App() {
             </div>
           }
         />
+      </div>
+
+      {/* AI prompt bar */}
+      <div className="flex items-center gap-1.5 border-t border-slate-200 bg-white px-2 py-1.5 dark:border-slate-800 dark:bg-slate-900">
+        {showAiKeyInput ? (
+          <div className="flex flex-1 items-center gap-1.5">
+            <input
+              type="password"
+              value={groqApiKey}
+              onChange={(e) => setGroqApiKey(e.target.value)}
+              placeholder="Enter your Groq API key…"
+              className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs outline-none focus:border-pink-500 dark:border-slate-700 dark:bg-slate-800"
+            />
+            <button
+              onClick={() => setShowAiKeyInput(false)}
+              className="rounded p-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  generateWithGroq();
+                }
+              }}
+              placeholder="Describe a diagram to generate with AI…"
+              disabled={isGenerating}
+              className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs outline-none transition focus:border-pink-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800"
+            />
+            <button
+              onClick={() => setShowAiKeyInput(true)}
+              title={groqApiKey ? "Change API key" : "Set Groq API key"}
+              className={`rounded p-1 transition ${
+                groqApiKey
+                  ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                  : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </button>
+            {isGenerating ? (
+              <button
+                onClick={stopGeneration}
+                title="Stop"
+                className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-xs font-medium text-white transition hover:bg-red-600"
+              >
+                <X className="h-3 w-3" />
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={generateWithGroq}
+                disabled={!aiPrompt.trim() || !groqApiKey}
+                title={!groqApiKey ? "Set a Groq API key first" : "Generate diagram"}
+                className="flex items-center gap-1 rounded bg-pink-500 px-2 py-1 text-xs font-medium text-white transition hover:bg-pink-600 disabled:opacity-40"
+              >
+                <Sparkles className="h-3 w-3" />
+                Generate
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
