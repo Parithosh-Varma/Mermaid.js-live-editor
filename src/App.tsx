@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Editor, { loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import type { editor } from "monaco-editor";
 import panzoom from "panzoom";
 import QRCode from "qrcode";
 import {
@@ -365,7 +365,7 @@ export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
   const panzoomRef = useRef<PanZoomApi | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // --- Effects ---
